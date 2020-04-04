@@ -71,10 +71,10 @@ def index():
 def venues():
 
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    query = Venue.query.group_by(Venue.id, Venue.state, Venue.city).all()
+    venue_query = Venue.query.group_by(Venue.id, Venue.state, Venue.city).all()
     city_state = ""
     data = []
-    for venue in query:
+    for venue in venue_query:
         upcoming_shows = venue.shows.filter(
             Show.start_time > current_time).all()
 
@@ -117,47 +117,24 @@ def search_venues():
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
 
-    venue_query = Venue.query.filter(Venue.id == venue_id).all()
+    venue_query = Venue.query.get(venue_id)
 
-    if(venue_query):
-        current_time = datetime.now()
-        venue = venue_query[0]
-        show_query = venue.shows.all()
-        data = Venue.details(venue)
-
-        past_shows = []
-        past_show_count = 0
-        upcoming_shows = []
-        upcoming_show_count = 0
-
-        for show in show_query:
-            artist_query = Artist.query.filter(
-                Artist.id == show.artist_id).all()
-            if(artist_query):
-                artist = artist_query[0]
-
-                if(show.start_time > current_time):
-                    upcoming_show_count += 1
-                    upcoming_shows.append({
-                        "artist_id": artist.id,
-                        "artist_name": artist.name,
-                        "artist_image_link": artist.image_link,
-                        "start_time": datetime.strftime(show.start_time, '%Y-%m-%d %H:%M:%S')
-                    })
-                else:
-                    upcoming_show_count += 1
-                    past_shows.append({
-                        "artist_id": artist.id,
-                        "artist_name": artist.name,
-                        "artist_image_link": artist.image_link,
-                        "start_time": datetime.strftime(show.start_time, '%Y-%m-%d %H:%M:%S')
-                    })
-        data["past_shows"] = past_shows
-        data["past_show_count"] = past_show_count
-        data["upcoming_shows"] = upcoming_shows
-        data["upcoming_show_count"] = upcoming_show_count
-
-    return render_template('pages/show_venue.html', venue=data)
+    if venue_query:
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        venue_details = Venue.details(venue_query)
+        # Find upcoming shows using join
+        upcoming_shows_query = Show.query.options(db.joinedload(Show.Venue)).filter(Show.venue_id == venue_id).filter(Show.start_time > current_time).all()
+        upcoming_shows_list = list(map(Show.artist_details, upcoming_shows_query))
+        venue_details["upcoming_shows"] = upcoming_shows_list
+        venue_details["upcoming_shows_count"] = len(upcoming_shows_list)
+        # Find past shows using join
+        past_shows_query = Show.query.options(db.joinedload(Show.Venue)).filter(Show.venue_id == venue_id).filter(Show.start_time <= current_time).all()
+        past_shows_list = list(map(Show.artist_details, past_shows_query))
+        venue_details["past_shows"] = past_shows_list
+        venue_details["past_shows_count"] = len(past_shows_list)
+       
+        return render_template('pages/show_venue.html', venue=venue_details)
+    return render_template('errors/404.html')
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -176,6 +153,7 @@ def create_venue_submission():
 
     if(form.validate()):
         try:
+            # Update seeking_talent and description if there in the form
             seeking_talent = False
             seeking_description = ""
             if('seeking_talent' in request.form):
@@ -254,46 +232,23 @@ def search_artists():
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
 
-    current_time = datetime.now()
-    artist_query = Artist.query.filter(Artist.id == artist_id).all()
-
-    if(artist_query):
-        artist = artist_query[0]
-        show_query = artist.shows.all()
-        data = Artist.details(artist)
-
-        past_shows = []
-        past_show_count = 0
-        upcoming_shows = []
-        upcoming_show_count = 0
-
-        for show in show_query:
-            venue_query = Venue.query.filter(Venue.id == show.venue_id).all()
-            if(venue_query):
-                venue = venue_query[0]
-
-                if(show.start_time > current_time):
-                    upcoming_show_count += 1
-                    upcoming_shows.append({
-                        "venue_id": venue.id,
-                        "venue_name": venue.name,
-                        "venue_image_link": venue.image_link,
-                        "start_time": datetime.strftime(show.start_time, '%Y-%m-%d %H:%M:%S')
-                    })
-                else:
-                    upcoming_show_count += 1
-                    past_shows.append({
-                        "venue_id": venue.id,
-                        "venue_name": venue.name,
-                        "venue_image_link": venue.image_link,
-                        "start_time": datetime.strftime(show.start_time, '%Y-%m-%d %H:%M:%S')
-                    })
-        data["past_shows"] = past_shows
-        data["past_show_count"] = past_show_count
-        data["upcoming_shows"] = upcoming_shows
-        data["upcoming_show_count"] = upcoming_show_count
-
-    return render_template('pages/show_artist.html', artist=data)
+    artist_query = Artist.query.get(artist_id)
+    
+    if artist_query:
+        artist_details = Artist.details(artist_query)
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        upcoming_shows_query = Show.query.options(db.joinedload(Show.Artist)).filter(Show.artist_id == artist_id).filter(Show.start_time > current_time).all()
+        upcoming_shows_list = list(map(Show.venue_details, upcoming_shows_query))
+        artist_details["upcoming_shows"] = upcoming_shows_list
+        artist_details["upcoming_shows_count"] = len(upcoming_shows_list)
+        past_shows_query = Show.query.options(db.joinedload(Show.Artist)).filter(Show.artist_id == artist_id).filter(Show.start_time <= current_time).all()
+        past_shows_list = list(map(Show.venue_details, past_shows_query))
+        artist_details["past_shows"] = past_shows_list
+        artist_details["past_shows_count"] = len(past_shows_list)
+        
+        return render_template('pages/show_artist.html', artist=artist_details)
+    
+    return render_template('errors/404.html')
 
 #  Update
 #  ----------------------------------------------------------------
@@ -329,6 +284,7 @@ def edit_artist_submission(artist_id):
 
     if(artist_data and form.validate()):
         try:
+            # Update seeking_talent and description if there in the form
             seeking_talent = False
             seeking_description = ""
             if('seeking_talent' in request.form):
@@ -389,6 +345,7 @@ def edit_venue_submission(venue_id):
 
     if(venue_data and form.validate()):
         try:
+            # Update seeking_talent and description if there in the form
             seeking_talent = False
             seeking_description = ""
             if('seeking_talent' in request.form):

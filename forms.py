@@ -1,7 +1,9 @@
 from datetime import datetime
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
+from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField, ValidationError
 from wtforms.validators import DataRequired, AnyOf, URL, Length
+import re
+
 
 STATE = [
     ('AL', 'AL'),
@@ -94,35 +96,36 @@ class ShowForm(FlaskForm):
 
 
 class VenueForm(FlaskForm):
+
     name = StringField(
-        'name', validators=[DataRequired(message="Name Required")]
+        'name', validators=[DataRequired()]
     )
     city = StringField(
-        'city', validators=[DataRequired(message="City Required")]
+        'city', validators=[DataRequired()]
     )
     state = SelectField(
-        'state', validators=[DataRequired(message="State Required")],
+        'state', validators=[DataRequired()],
         choices=STATE
     )
     address = StringField(
-        'address', validators=[DataRequired(message="Address Required")]
+        'address', validators=[DataRequired()]
     )
     phone = StringField(
         'phone'
     )
     genres = SelectMultipleField(
         # TODO implement enum restriction
-        'genres', validators=[DataRequired(message="Genres Required")],
+        'genres', validators=[DataRequired()],
         choices=GENRES
     )
     facebook_link = StringField(
-        'facebook_link', validators=[URL(message="Incorrect Link")]
+        'facebook_link', validators=[URL()]
     )
     website_link = StringField(
-        'website_link', validators=[URL(message="Incorrect Link")]
+        'website_link', validators=[URL()]
     )
     image_link = StringField(
-        'image_link', validators=[URL(message="Incorrect Link")]
+        'image_link', validators=[URL()]
     )
     seeking_talent = BooleanField(
         'seeking_talent'
@@ -148,19 +151,16 @@ class ArtistForm(FlaskForm):
         'phone'
     )
     image_link = StringField(
-        'image_link'
+        'image_link', validators=[URL()]
     )
     genres = SelectMultipleField(
-        # TODO implement enum restriction
         'genres', validators=[DataRequired()],
         choices=GENRES
     )
     facebook_link = StringField(
-        # TODO implement enum restriction
         'facebook_link', validators=[URL()]
     )
     website_link = StringField(
-        # TODO implement enum restriction
         'website_link', validators=[URL()]
     )
 

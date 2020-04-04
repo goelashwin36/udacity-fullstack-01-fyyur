@@ -36,6 +36,7 @@ Our tech stack will include:
   ├── config.py *** Database URLs, CSRF generation, etc
   ├── error.log
   ├── forms.py *** Your forms
+  ├── models.py *** Database Models
   ├── requirements.txt *** The dependencies we need to install with "pip3 install -r requirements.txt"
   ├── static
   │   ├── css 
@@ -51,7 +52,7 @@ Our tech stack will include:
   ```
 
 Overall:
-* Models are located in the `MODELS` section of `app.py`.
+* Models are located in `models.py`.
 * Controllers are also located in `app.py`.
 * The web frontend is located in `templates/`, which builds static assets deployed to the web server at `static/`.
 * Web forms for creating data are located in `form.py`

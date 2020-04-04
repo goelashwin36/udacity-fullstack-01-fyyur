@@ -27,7 +27,7 @@ class Venue(db.Model):
         self.website_link = website_link
         self.genres = genres
         self.image_link = image_link
-        self.facebook_link = image_link
+        self.facebook_link = facebook_link
         self.seeking_talent = seeking_talent
         self.seeking_description = seeking_description
 
